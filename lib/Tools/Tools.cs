@@ -22,9 +22,13 @@ namespace Godot.Sharp.Extras
 		{
 			var type = node.GetType();
 
+			
+
 			if (TypeMembers.TryGetValue(type, out var members) == false)
 			{
-				var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+				var bindingFlags = BindingFlags.DeclaredOnly |
+
+					BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 				members = type.GetFields(bindingFlags).Select(fi => new MemberInfo(fi))
 							.Concat(type.GetProperties(bindingFlags).Select(pi => new MemberInfo(pi)))
 							.ToArray();
@@ -33,23 +37,99 @@ namespace Godot.Sharp.Extras
 
 			foreach (var member in members)
 			{
-				foreach (var attr in member.CustomAttributes)
+				/*
+				bool resolveNode = member.CustomAttributes.Count( att => att.GetType() == typeof( ResolveNodeAttribute ) ) > 0;
+				bool nodePath    = member.CustomAttributes.Count( att => att.GetType() == typeof( NodePathAttribute    ) ) > 0;
+				bool resource    = member.CustomAttributes.Count( att => att.GetType() == typeof( ResourceAttribute    ) ) > 0;
+				bool singleton   = member.CustomAttributes.Count( att => att.GetType() == typeof( SingletonAttribute   ) ) > 0;
+
+				*/
+
+				var wasHandled = false;
+				foreach( var attr in member.CustomAttributes)
 				{
 					switch(attr)
 					{
 						case ResolveNodeAttribute resolveAttr:
 							ResolveNodeFromPath(node, member, resolveAttr.TargetFieldName);
+							wasHandled = true;
 							break;
 						case NodePathAttribute pathAttr:
 							AssignPathToMember(node, member, pathAttr.NodePath);
+							wasHandled = true;
 							break;
 						case ResourceAttribute resAttr:
 							LoadResource(node, member, resAttr.ResourcePath);
+							wasHandled = true;
 							break;
 						case SingletonAttribute singAttr:
 							LoadSingleton(node, member, singAttr.Name);
+							wasHandled = true;
 							break;
 					}
+				}
+
+				if( !wasHandled )
+				{
+					GD.Print( $"Member {member.Name} wasnt handled, using types" );
+					var memberType = member.MemberType;
+
+					var isResource = memberType.IsSubclassOf( typeof( Resource ) );
+					var isNode = memberType.IsSubclassOf( typeof( Node ) );
+
+					if( isNode )
+					{
+						GD.Print( $"AssignPathToMember {node.GetPath()}.{member.Name}" );
+
+						AssignPathToMember( node, member, member.Name );
+
+						wasHandled = true;
+					}
+					else if( isResource )
+					{
+						var path = node.GetPath();
+
+						GD.Print( $"LoadingResource {path}/{member.Name}" );
+
+						//var nodeName = member.Name;
+
+						//GD.Print( $"NodeName {nodeName}" );
+
+						//var resNameFromNode = nodeName.Replace( "_", "/" );
+						//var fullResName = $"res:/{resNameFromNode}";
+						//var curPath = node.GetPath();
+
+						//GD.Print( $"NodePath {curPath.GetName(0)}" );
+
+						//var fullPath = curPath.GetName( 0 );
+						/*
+						for( int i = 0; i < curPath.GetNameCount() - 1; ++i )
+						{
+							var curName = curPath.GetName( i );
+							fullPath += $"/{curName}";
+						}
+						*/
+
+						var fullPath = "res:/";
+
+						for(int i=1; i< path.GetNameCount(); ++i )
+						{
+							fullPath += $"/{path.GetName( i )}";
+						}
+
+						var fullName = $"{fullPath}/{member.Name}.tscn";
+
+						GD.Print( $"Loading Resource {"type"} from {fullName}" );
+
+						LoadResource( node, member, fullName );
+
+						wasHandled = true;
+					}
+				}
+
+				if( !wasHandled )
+				{
+					GD.PrintErr( $"Member {member.Name} couldnt be handled" );
 				}
 			}
 
@@ -101,7 +181,7 @@ namespace Godot.Sharp.Extras
 						? new MemberInfo(fi)
 						: type.GetProperty(targetFieldName) is PropertyInfo pi
 						? new MemberInfo(pi)
-						: throw new Exception($"ResolveNodeAttribute on {type.FullName}.{member.Name} targets nonexistent field or property {targetFieldName}");
+						: throw new Exception($"ResolveNodeAttribute {targetFieldName} nonexistent field or property on {member.Name} of {type.FullName}");
 			
 			NodePath path = targetMember.GetValue(node) as NodePath
 					?? throw new Exception($"ResolveNodeAttribute on {type.FullName}.{member.Name} targets property {targetFieldName} which is not a NodePath");
@@ -110,6 +190,9 @@ namespace Godot.Sharp.Extras
 		}
 
 		private static void LoadResource(Node node, MemberInfo member, string resourcePath) {
+
+			GD.Print( $"LoadResource {resourcePath} for type {node.GetType().Name} in {member.Name} of type {member.MemberType.Name}" );
+
 			Resource res;
 			try {
 				res = GD.Load(resourcePath);
@@ -206,9 +289,14 @@ namespace Godot.Sharp.Extras
 			Node value = TryGetNode(node, names);
 
 			if (value == null)
-				throw new Exception($"AssignPathToMember on {node.GetType().FullName}.{member.Name} - Unable to find node with the following names: {string.Join(",", names.ToArray())}");
+			{
+				throw new Exception( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - Unable to find node with the following names: {string.Join( ",", names.ToArray() )}" );
+
+			}
+
 			try
 			{
+				/* */GD.Print( $"Setting {member.Name} from path {path}" );
 				member.SetValue(node,value);
 			}
 			catch (ArgumentException e)
