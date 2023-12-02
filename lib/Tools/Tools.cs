@@ -246,8 +246,9 @@ namespace Godot.Sharp.Extras
 				$"/root/{member.MemberType.Name}"
 			};
 
-			if (names.Contains(""))
-				names.RemoveAll(string.IsNullOrEmpty);
+			//You dont need to check for something, then handle it.  Just handle it
+			//if (names.Contains(""))
+			names.RemoveAll(string.IsNullOrEmpty);
 
 			Node value = TryGetNode(node, names);
 
