@@ -72,7 +72,7 @@ namespace Godot.Sharp.Extras
 
 					if( !wasHandled )
 					{
-						GD.Print( $"Member {member.Name} wasnt handled, using types" );
+						//GD.Print( $"Member {member.Name} wasnt handled, using types" );
 						var memberType = member.MemberType;
 
 						var isResource = memberType.IsSubclassOf( typeof( Resource ) );
@@ -80,7 +80,7 @@ namespace Godot.Sharp.Extras
 
 						if( isNode )
 						{
-							GD.Print( $"AssignPathToMember {node.GetPath()}.{member.Name}" );
+							//GD.Print( $"AssignPathToMember {node.GetPath()}.{member.Name}" );
 
 							AssignPathToMember( node, member, member.Name );
 
@@ -90,7 +90,7 @@ namespace Godot.Sharp.Extras
 						{
 							var path = node.GetPath();
 
-							GD.Print( $"LoadingResource {path}/{member.Name}" );
+							//GD.Print( $"LoadingResource {path}/{member.Name}" );
 
 							/*
 							//var nodeName = member.Name;
@@ -123,7 +123,7 @@ namespace Godot.Sharp.Extras
 
 							var fullName = $"{fullPath}/{member.Name}.tscn";
 
-							GD.Print( $"Loading Resource {"type"} from {fullName}" );
+							//GD.Print( $"Loading Resource {"type"} from {fullName}" );
 
 							LoadResource( node, member, fullName );
 
