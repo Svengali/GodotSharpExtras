@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -80,7 +81,7 @@ namespace Godot.Sharp.Extras
 
 						if( isNode )
 						{
-							//GD.Print( $"AssignPathToMember {node.GetPath()}.{member.Name}" );
+							GD.Print( $"AssignPathToMember {node.GetPath()}/{member.Name}" );
 
 							AssignPathToMember( node, member, member.Name );
 
@@ -242,14 +243,30 @@ namespace Godot.Sharp.Extras
 		{
 			foreach( var name in names )
 			{
-				if( string.IsNullOrEmpty( name ) ) continue;
-				var target = node.GetNodeOrNull( name );
-				if( target != null )
-					return target;
-				if( node.Owner == null ) continue;
-				target = node.Owner.GetNodeOrNull( name );
-				if( target != null )
-					return target;
+				try
+				{
+					if( string.IsNullOrEmpty( name ) ) continue;
+					var target = node.GetNodeOrNull( name );
+					if( target != null ) return target;
+
+					if( node.Owner == null )
+					{
+						target = node.FindChild( name, true, false );
+						if( target != null ) return target;
+						continue;
+					}
+
+					target = node.Owner.GetNodeOrNull( name );
+					if( target != null ) return target;
+
+					target = node.Owner.FindChild( name, true, false );
+					if( target != null ) return target;
+
+				}
+				catch( Exception ex )
+				{
+					GD.PrintErr( $"TryGetNode {node.GetType().Name} broke on {name}" );
+				}
 			}
 			return null;
 		}
@@ -297,7 +314,9 @@ namespace Godot.Sharp.Extras
 		{
 			var name1 = member.Name;
 			if( !name1.StartsWith( "_" ) )
+			{
 				name1 = string.Empty;
+			}
 			else
 			{
 				name1 = char.ToUpperInvariant( member.Name[1] ) + member.Name[2..];
@@ -305,9 +324,13 @@ namespace Godot.Sharp.Extras
 				// name1 = char.ToUpperInvariant(name1[0]) + name1.Substring(1);
 			}
 
+			var pathStr = path.ToString();
+			var pathReplacedStr = pathStr.Replace( '_', '/' );
+
 			List<string> names = new List<string>()
 			{
-				path.ToString(),
+				pathStr,
+				pathReplacedStr,
 				member.Name,
 				$"%{member.Name}",
 				name1,
@@ -316,14 +339,17 @@ namespace Godot.Sharp.Extras
 			};
 
 			if( names.Contains( "" ) )
+			{
 				names.RemoveAll( string.IsNullOrEmpty );
+			}
 
 			Node value = TryGetNode( node, names );
 
 			if( value == null )
 			{
-				throw new Exception( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - Unable to find node with the following names: {string.Join( ",", names.ToArray() )}" );
-
+				var errStr = $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - Unable to find node with the following names: {string.Join( ",", names.ToArray() )}";
+				GD.PrintErr( errStr );
+				throw new Exception( errStr );
 			}
 
 			try
@@ -334,7 +360,8 @@ namespace Godot.Sharp.Extras
 			}
 			catch( ArgumentException e )
 			{
-				throw new Exception( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}", e );
+				GD.PrintErr( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}" );
+				//throw new Exception( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}", e );
 			}
 		}
 
