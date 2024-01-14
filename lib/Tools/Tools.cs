@@ -327,6 +327,9 @@ namespace Godot.Sharp.Extras
 			var pathStr = path.ToString();
 			var pathReplacedStr = pathStr.Replace( '_', '/' );
 
+			var prefix = member.CustomAttributes?.FirstOrDefault( a => a?.GetType() == typeof( PrefixAttribute ) ) as PrefixAttribute;
+
+
 			List<string> names = new List<string>()
 			{
 				pathStr,
@@ -337,6 +340,12 @@ namespace Godot.Sharp.Extras
 				string.IsNullOrEmpty(name1) ? "" : $"%{name1}",
 				member.MemberType.Name
 			};
+
+			if( prefix != null )
+			{
+				names.Add( $"{prefix.Prefix}/{member.Name}" );
+			}
+
 
 			if( names.Contains( "" ) )
 			{
