@@ -11,6 +11,13 @@ namespace Godot.Sharp.Extras
 	public static class Tools
 	{
 		private static TextInfo _textInfo = new CultureInfo( "en-us", false ).TextInfo;
+
+		public static void ReadyType<T>( T node )
+			where T : Node
+		{
+			node.OnReady<T>();
+		}
+
 		/// <summary>
 		/// Processes all Attributes for NodePaths.
 		/// </summary>
@@ -21,9 +28,8 @@ namespace Godot.Sharp.Extras
 		public static void OnReady<T>( this T node )
 			where T : Node
 		{
-			var type = node.GetType();
-
-
+			var type = typeof(T);
+			
 
 			if( TypeMembers.TryGetValue( type, out var members ) == false )
 			{
@@ -38,6 +44,7 @@ namespace Godot.Sharp.Extras
 
 			foreach( var member in members )
 			{
+				GD.Print( $"* Processing {member.Name}" );
 				try
 				{
 					/*
@@ -91,7 +98,7 @@ namespace Godot.Sharp.Extras
 						{
 							var path = node.GetPath();
 
-							//GD.Print( $"LoadingResource {path}/{member.Name}" );
+							GD.Print( $"LoadingResource 2 {path}/{member.Name}" );
 
 							/*
 							//var nodeName = member.Name;
@@ -115,16 +122,24 @@ namespace Godot.Sharp.Extras
 							}
 							*/
 
-							var fullPath = "res:/";
+							//GD.Print( $"Scene File Path {node?.SceneFilePath}" );
 
+							string sceneFile = node.SceneFilePath;
+							
+							var endOfResPathIndex = sceneFile.LastIndexOf('/');
+							
+							var fullPath = sceneFile.Substring( 0, endOfResPathIndex );
+							
+							/*
 							for( int i = 1; i < path.GetNameCount(); ++i )
 							{
 								fullPath += $"/{path.GetName( i )}";
 							}
+							*/
 
 							var fullName = $"{fullPath}/{member.Name}.tscn";
 
-							//GD.Print( $"Loading Resource {"type"} from {fullName}" );
+							GD.Print( $"Loading Resource {"type"} from {fullName}" );
 
 							LoadResource( node, member, fullName );
 
@@ -139,14 +154,9 @@ namespace Godot.Sharp.Extras
 				}
 				catch( Exception ex )
 				{
-
+						GD.PrintErr( $"Member {member.Name} got {ex.Message}" );
 				}
 			}
-
-
-
-
-
 
 			if( SignalHandlers.TryGetValue( type, out var handlers ) == false )
 			{
@@ -196,6 +206,8 @@ namespace Godot.Sharp.Extras
 
 		private static void ResolveNodeFromPath( Node node, MemberInfo member, string targetFieldName )
 		{
+			GD.Print( $"For {member.Name} " );
+
 			var type = node.GetType();
 			MemberInfo targetMember = type.GetField( targetFieldName ) is FieldInfo fi
 						? new MemberInfo( fi )
@@ -266,6 +278,7 @@ namespace Godot.Sharp.Extras
 				catch( Exception ex )
 				{
 					GD.PrintErr( $"TryGetNode {node.GetType().Name} broke on {name}" );
+					GD.PrintErr( $"TryGetNode got ex {ex.Message}" );
 				}
 			}
 			return null;
@@ -367,9 +380,10 @@ namespace Godot.Sharp.Extras
 				GD.Print( $"Setting {member.Name} from path {path}" );
 				member.SetValue( node, value );
 			}
-			catch( ArgumentException e )
+			catch( ArgumentException ex )
 			{
 				GD.PrintErr( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}" );
+				GD.PrintErr( $"Exception {ex.Message}" );
 				//throw new Exception( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}", e );
 			}
 		}
