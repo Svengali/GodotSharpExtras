@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Godot;
@@ -96,9 +97,6 @@ namespace Godot.Sharp.Extras
 						}
 						else if( isResource )
 						{
-							var path = node.GetPath();
-
-							GD.Print( $"LoadingResource 2 {path}/{member.Name}" );
 
 							/*
 							//var nodeName = member.Name;
@@ -124,12 +122,30 @@ namespace Godot.Sharp.Extras
 
 							//GD.Print( $"Scene File Path {node?.SceneFilePath}" );
 
+
+							/*
+							var path = node.GetPath();
+
+
+							GD.Print( $"LoadingResource {path}/{member.Name} {prefixString} {prefix}" );
+							*/
+
+
+
+
 							string sceneFile = node.SceneFilePath;
 							
 							var endOfResPathIndex = sceneFile.LastIndexOf('/');
 							
-							var fullPath = sceneFile.Substring( 0, endOfResPathIndex );
-							
+							var path = sceneFile.Substring( 0, endOfResPathIndex );
+
+							var prefix = member.CustomAttributes?.FirstOrDefault( a => a?.GetType() == typeof( PrefixAttribute ) ) as PrefixAttribute;
+
+							var prefixString = prefix?.Prefix;
+
+							path += $"/{prefixString}";
+
+
 							/*
 							for( int i = 1; i < path.GetNameCount(); ++i )
 							{
@@ -137,7 +153,7 @@ namespace Godot.Sharp.Extras
 							}
 							*/
 
-							var fullName = $"{fullPath}/{member.Name}.tscn";
+							var fullName = $"{path}/{member.Name}.tscn";
 
 							GD.Print( $"Loading Resource {"type"} from {fullName}" );
 
