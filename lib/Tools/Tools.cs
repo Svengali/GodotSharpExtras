@@ -31,6 +31,7 @@ namespace Godot.Sharp.Extras
 		{
 			var type = typeof(T);
 			
+		//GD.Print( $"** OnReady for {type.Name}" );
 
 			if( TypeMembers.TryGetValue( type, out var members ) == false )
 			{
@@ -45,7 +46,7 @@ namespace Godot.Sharp.Extras
 
 			foreach( var member in members )
 			{
-				GD.Print( $"* Processing {member.Name}" );
+				//GD.Print( $"* Processing {member.Name}" );
 				try
 				{
 					/*
@@ -89,7 +90,7 @@ namespace Godot.Sharp.Extras
 
 						if( isNode )
 						{
-							GD.Print( $"AssignPathToMember {node.GetPath()}/{member.Name}" );
+							//GD.Print( $"AssignPathToMember {node.GetPath()}/{member.Name}" );
 
 							AssignPathToMember( node, member, member.Name );
 
@@ -127,7 +128,7 @@ namespace Godot.Sharp.Extras
 							var path = node.GetPath();
 
 
-							GD.Print( $"LoadingResource {path}/{member.Name} {prefixString} {prefix}" );
+						//GD.Print( $"LoadingResource {path}/{member.Name} {prefixString} {prefix}" );
 							*/
 
 
@@ -155,7 +156,7 @@ namespace Godot.Sharp.Extras
 
 							var fullName = $"{path}/{member.Name}.tscn";
 
-							GD.Print( $"Loading Resource {"type"} from {fullName}" );
+						//GD.Print( $"Loading Resource {"type"} from {fullName}" );
 
 							LoadResource( node, member, fullName );
 
@@ -165,12 +166,12 @@ namespace Godot.Sharp.Extras
 
 					if( !wasHandled )
 					{
-						GD.PrintErr( $"Member {member.Name} couldnt be handled" );
+						GD.PrintErr( $"Member {member.Name} wasnt handled" );
 					}
 				}
-				catch( Exception ex )
+				catch( Exception )
 				{
-						GD.PrintErr( $"Member {member.Name} got {ex.Message}" );
+						//GD.PrintErr( $"Member {member.Name} got {ex.Message}" );
 				}
 			}
 
@@ -222,7 +223,7 @@ namespace Godot.Sharp.Extras
 
 		private static void ResolveNodeFromPath( Node node, MemberInfo member, string targetFieldName )
 		{
-			GD.Print( $"For {member.Name} " );
+		//GD.Print $"For {member.Name} " );
 
 			var type = node.GetType();
 			MemberInfo targetMember = type.GetField( targetFieldName ) is FieldInfo fi
@@ -240,7 +241,7 @@ namespace Godot.Sharp.Extras
 		private static void LoadResource( Node node, MemberInfo member, string resourcePath )
 		{
 
-			GD.Print( $"LoadResource {resourcePath} for type {node.GetType().Name} in {member.Name} of type {member.MemberType.Name}" );
+		//GD.Print $"LoadResource {resourcePath} for type {node.GetType().Name} in {member.Name} of type {member.MemberType.Name}" );
 
 			Resource res;
 			try
@@ -386,20 +387,20 @@ namespace Godot.Sharp.Extras
 			if( value == null )
 			{
 				var errStr = $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - Unable to find node with the following names: {string.Join( ",", names.ToArray() )}";
-				GD.PrintErr( errStr );
+				//GD.PrintErr( errStr );
 				throw new Exception( errStr );
 			}
 
 			try
 			{
 				/* */
-				GD.Print( $"Setting {member.Name} from path {path}" );
+			//GD.Print $"Setting {member.Name} from path {path}" );
 				member.SetValue( node, value );
 			}
-			catch( ArgumentException ex )
+			catch( ArgumentException )
 			{
-				GD.PrintErr( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}" );
-				GD.PrintErr( $"Exception {ex.Message}" );
+				//GD.PrintErr( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}" );
+				//GD.PrintErr( $"Exception {ex.Message}" );
 				//throw new Exception( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}", e );
 			}
 		}
