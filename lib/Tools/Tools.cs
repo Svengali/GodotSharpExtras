@@ -26,12 +26,12 @@ namespace Godot.Sharp.Extras
 		/// This will fill in fields and register signals as per attributes such as <see cref="NodePathAttribute"/> and <see cref="SignalAttribute"/>.
 		/// </remarks>
 		/// <param name="node">The node.</param>
-		public static void OnReady<T>( this T node )
+		public static void OnReady<T>( this T node, bool verbose = false )
 			where T : Node
 		{
 			var type = typeof(T);
 			
-		//GD.Print( $"** OnReady for {type.Name}" );
+			if( verbose ) GD.Print( $"** OnReady for {type.Name}" );
 
 			if( TypeMembers.TryGetValue( type, out var members ) == false )
 			{
@@ -62,11 +62,11 @@ namespace Godot.Sharp.Extras
 						switch( attr )
 						{
 							case ResolveNodeAttribute resolveAttr:
-								ResolveNodeFromPath( node, member, resolveAttr.TargetFieldName );
+								ResolveNodeFromPath( node, member, resolveAttr.TargetFieldName, verbose );
 								wasHandled = true;
 								break;
 							case NodePathAttribute pathAttr:
-								AssignPathToMember( node, member, pathAttr.NodePath );
+								AssignPathToMember( node, member, pathAttr.NodePath, verbose );
 								wasHandled = true;
 								break;
 							case ResourceAttribute resAttr:
@@ -82,17 +82,19 @@ namespace Godot.Sharp.Extras
 
 					if( !wasHandled )
 					{
-						//GD.Print( $"Member {member.Name} wasnt handled, using types" );
+						if( verbose ) GD.Print( $"Member {member.Name} wasnt handled, using types" );
 						var memberType = member.MemberType;
 
 						var isResource = memberType.IsSubclassOf( typeof( Resource ) );
-						var isNode = memberType.IsSubclassOf( typeof( Node ) );
+						var isNode = memberType.IsSubclassOf( typeof( Node ) ) || memberType == typeof( Node );
+
+						if( verbose ) GD.Print( $"Member {member.Name} isRes {isResource} isNode {isNode}" );
 
 						if( isNode )
 						{
-							//GD.Print( $"AssignPathToMember {node.GetPath()}/{member.Name}" );
+							if( verbose ) GD.Print( $"AssignPathToMember {node.GetPath()}/{member.Name}" );
 
-							AssignPathToMember( node, member, member.Name );
+							AssignPathToMember( node, member, member.Name, verbose );
 
 							wasHandled = true;
 						}
@@ -156,7 +158,7 @@ namespace Godot.Sharp.Extras
 
 							var fullName = $"{path}/{member.Name}.tscn";
 
-						//GD.Print( $"Loading Resource {"type"} from {fullName}" );
+							if( verbose ) GD.Print( $"Loading Resource {"type"} from {fullName}" );
 
 							LoadResource( node, member, fullName );
 
@@ -169,9 +171,9 @@ namespace Godot.Sharp.Extras
 						GD.PrintErr( $"Member {member.Name} wasnt handled" );
 					}
 				}
-				catch( Exception )
+				catch( Exception ex )
 				{
-						//GD.PrintErr( $"Member {member.Name} got {ex.Message}" );
+						if( verbose ) GD.PrintErr( $"Member {member.Name} got {ex.Message}" );
 				}
 			}
 
@@ -221,7 +223,7 @@ namespace Godot.Sharp.Extras
 			}
 		}
 
-		private static void ResolveNodeFromPath( Node node, MemberInfo member, string targetFieldName )
+		private static void ResolveNodeFromPath( Node node, MemberInfo member, string targetFieldName, bool verbose )
 		{
 		//GD.Print $"For {member.Name} " );
 
@@ -235,7 +237,7 @@ namespace Godot.Sharp.Extras
 			NodePath path = targetMember.GetValue( node ) as NodePath
 					?? throw new Exception( $"ResolveNodeAttribute on {type.FullName}.{member.Name} targets property {targetFieldName} which is not a NodePath" );
 
-			AssignPathToMember( node, member, path );
+			AssignPathToMember( node, member, path, verbose );
 		}
 
 		private static void LoadResource( Node node, MemberInfo member, string resourcePath )
@@ -340,7 +342,7 @@ namespace Godot.Sharp.Extras
 			}
 		}
 
-		private static void AssignPathToMember( Node node, MemberInfo member, NodePath path )
+		private static void AssignPathToMember( Node node, MemberInfo member, NodePath path, bool verbose )
 		{
 			var name1 = member.Name;
 			if( !name1.StartsWith( "_" ) )
@@ -360,7 +362,14 @@ namespace Godot.Sharp.Extras
 			var prefix = member.CustomAttributes?.FirstOrDefault( a => a?.GetType() == typeof( PrefixAttribute ) ) as PrefixAttribute;
 
 
-			List<string> names = new List<string>()
+			List<string> names = new();
+
+			if( prefix != null )
+			{
+				names.Add( $"{prefix.Prefix}/{member.Name}" );
+			}
+			
+			names.AddRange( new string[]
 			{
 				pathStr,
 				pathReplacedStr,
@@ -369,12 +378,8 @@ namespace Godot.Sharp.Extras
 				name1,
 				string.IsNullOrEmpty(name1) ? "" : $"%{name1}",
 				member.MemberType.Name
-			};
+			} );
 
-			if( prefix != null )
-			{
-				names.Add( $"{prefix.Prefix}/{member.Name}" );
-			}
 
 
 			if( names.Contains( "" ) )
@@ -387,20 +392,20 @@ namespace Godot.Sharp.Extras
 			if( value == null )
 			{
 				var errStr = $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - Unable to find node with the following names: {string.Join( ",", names.ToArray() )}";
-				//GD.PrintErr( errStr );
+				if( verbose ) GD.PrintErr( errStr );
 				throw new Exception( errStr );
 			}
 
 			try
 			{
 				/* */
-			//GD.Print $"Setting {member.Name} from path {path}" );
+				if( verbose ) GD.Print( $"Setting {member.Name} from path {path}" );
 				member.SetValue( node, value );
 			}
-			catch( ArgumentException )
+			catch( ArgumentException ex )
 			{
-				//GD.PrintErr( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}" );
-				//GD.PrintErr( $"Exception {ex.Message}" );
+				if( verbose ) GD.PrintErr( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}" );
+				if( verbose ) GD.PrintErr( $"Exception {ex.Message}" );
 				//throw new Exception( $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - cannot set value of type {value?.GetType().Name} on field type {member.MemberType.Name}", e );
 			}
 		}
