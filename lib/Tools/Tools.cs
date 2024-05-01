@@ -72,7 +72,7 @@ namespace Godot.Sharp.Extras
 								wasHandled = true;
 								break;
 							case ResourceAttribute resAttr:
-								LoadResource( node, member, resAttr.ResourcePath );
+								LoadResource( node, member, resAttr.ResourcePath, false );
 								wasHandled = true;
 								break;
 							case SingletonAttribute singAttr:
@@ -162,7 +162,7 @@ namespace Godot.Sharp.Extras
 
 							if( verbose ) GD.Print( $"Loading Resource {"type"} from {fullName}" );
 
-							LoadResource( node, member, fullName );
+							LoadResource( node, member, fullName, true );
 
 							wasHandled = true;
 						}
@@ -242,15 +242,17 @@ namespace Godot.Sharp.Extras
 			AssignPathToMember( node, member, path, verbose );
 		}
 
-		private static void LoadResource( Node node, MemberInfo member, string resourcePath )
+		private static void LoadResource( Node node, MemberInfo member, string resourcePath, bool speculative )
 		{
 
 		//GD.Print $"LoadResource {resourcePath} for type {node.GetType().Name} in {member.Name} of type {member.MemberType.Name}" );
 
-			Resource res;
+			Resource res = default;
 			try
 			{
-				res = GD.Load( resourcePath );
+				var exists = ResourceLoader.Exists( resourcePath );
+				if( exists ) res = GD.Load( resourcePath );
+				else if( speculative ) return;
 			}
 			catch( Exception ex )
 			{
