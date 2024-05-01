@@ -30,8 +30,8 @@ namespace Godot.Sharp.Extras
 			where T : Node
 		{
 			var type = typeof(T);
-			
-			if( verbose ) GD.Print( $"** OnReady for {type.Name}" );
+
+			GD.Print( $"** OnReady for {type.Name}" );
 
 			if( TypeMembers.TryGetValue( type, out var members ) == false )
 			{
@@ -137,9 +137,9 @@ namespace Godot.Sharp.Extras
 
 
 							string sceneFile = node.SceneFilePath;
-							
+
 							var endOfResPathIndex = sceneFile.LastIndexOf('/');
-							
+
 							var path = sceneFile.Substring( 0, endOfResPathIndex );
 
 							var prefix = member.CustomAttributes?.FirstOrDefault( a => a?.GetType() == typeof( PrefixAttribute ) ) as PrefixAttribute;
@@ -368,7 +368,7 @@ namespace Godot.Sharp.Extras
 			{
 				names.Add( $"{prefix.Prefix}/{member.Name}" );
 			}
-			
+
 			names.AddRange( new string[]
 			{
 				pathStr,
