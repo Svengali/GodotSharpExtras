@@ -87,8 +87,14 @@ namespace Godot.Sharp.Extras
 						if( verbose ) GD.Print( $"Member {member.Name} wasnt handled, using types" );
 						var memberType = member.MemberType;
 
+						/*
 						var isResource = memberType.IsSubclassOf( typeof( Resource ) );
 						var isNode = memberType.IsSubclassOf( typeof( Node ) ) || memberType == typeof( Node );
+						/*/
+						var isResource = typeof( Resource ).IsAssignableFrom( memberType );
+						var isNode = typeof( Node ).IsAssignableFrom( memberType );
+						//*/
+
 
 						if( verbose ) GD.Print( $"Member {member.Name} isRes {isResource} isNode {isNode}" );
 
@@ -140,37 +146,44 @@ namespace Godot.Sharp.Extras
 
 							string sceneFile = node.SceneFilePath;
 
-							var endOfResPathIndex = sceneFile.LastIndexOf('/');
-
-							var path = sceneFile.Substring( 0, endOfResPathIndex );
-
-							var prefix = member.CustomAttributes?.FirstOrDefault( a => a?.GetType() == typeof( PrefixAttribute ) ) as PrefixAttribute;
-
-							var prefixString = prefix?.Prefix;
-
-							path += $"/{prefixString}";
-
-
-							/*
-							for( int i = 1; i < path.GetNameCount(); ++i )
+							if( !string.IsNullOrWhiteSpace( sceneFile  ) )
 							{
-								fullPath += $"/{path.GetName( i )}";
+								var endOfResPathIndex = sceneFile.LastIndexOf('/');
+
+								var path = sceneFile.Substring( 0, endOfResPathIndex );
+
+								var prefix = member.CustomAttributes?.FirstOrDefault( a => a?.GetType() == typeof( PrefixAttribute ) ) as PrefixAttribute;
+
+								var prefixString = prefix?.Prefix;
+
+								path += $"/{prefixString}";
+
+
+								/*
+								for( int i = 1; i < path.GetNameCount(); ++i )
+								{
+									fullPath += $"/{path.GetName( i )}";
+								}
+								*/
+
+								var fullName = $"{path}/{member.Name}.tscn";
+
+								if( verbose ) GD.Print( $"Loading Resource {"type"} from {fullName}" );
+
+								LoadResource( node, member, fullName, true );
+
+								wasHandled = true;
 							}
-							*/
-
-							var fullName = $"{path}/{member.Name}.tscn";
-
-							if( verbose ) GD.Print( $"Loading Resource {"type"} from {fullName}" );
-
-							LoadResource( node, member, fullName, true );
-
-							wasHandled = true;
+							else
+							{
+								if( verbose ) GD.Print( $"{memberType.Name}.{member.Name} is not a scene" );
+							}
 						}
 					}
 
 					if( !wasHandled )
 					{
-						GD.PrintErr( $"Member {member.Name} wasnt handled" );
+						if( verbose ) GD.PrintErr( $"Member {member.Name} wasnt handled" );
 					}
 				}
 				catch( Exception ex )
@@ -349,7 +362,7 @@ namespace Godot.Sharp.Extras
 		private static void AssignPathToMember( Node node, MemberInfo member, NodePath path, bool verbose )
 		{
 			var name1 = member.Name;
-			if( !name1.StartsWith( "_" ) )
+			if( !name1.StartsWith( "_" ) || name1.Length < 3 )
 			{
 				name1 = string.Empty;
 			}
@@ -397,7 +410,8 @@ namespace Godot.Sharp.Extras
 			{
 				var errStr = $"AssignPathToMember on {node.GetType().FullName}.{member.Name} - Unable to find node with the following names: {string.Join( ",", names.ToArray() )}";
 				if( verbose ) GD.PrintErr( errStr );
-				throw new Exception( errStr );
+				//throw new Exception( errStr );
+				return;
 			}
 
 			try
