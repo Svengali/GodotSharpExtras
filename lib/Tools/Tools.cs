@@ -33,7 +33,7 @@ namespace Godot.Sharp.Extras
 
 			var verboseText = verbose ? "*** " : "";
 
-			GD.Print( $"extra          | {verboseText}OnReady for {type.Name}" );
+			if( verbose ) GD.Print( $"extra          | {verboseText}OnReady for {type.Name}" );
 
 			if( TypeMembers.TryGetValue( type, out var members ) == false )
 			{
